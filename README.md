@@ -3,7 +3,7 @@ XiaoMi Cloud Service for mi.com
 
 ## Install
 ```
-pip3 install miservice
+pip3 install .
 ```
 
 ## Library
