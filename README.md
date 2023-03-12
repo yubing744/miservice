@@ -1,5 +1,6 @@
 # MiService
 XiaoMi Cloud Service for mi.com
+This is a fork from https://github.com/Yonsm/MiService made some change for xiaogpt
 
 ## Install
 ```

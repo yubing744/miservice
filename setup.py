@@ -12,12 +12,10 @@ if len(sys.argv) == 1:
 
 from setuptools import setup
 
-from miservice import MISERVICE_VERSION
-
 setup(
-    name="miservice",
-    description="XiaoMi Cloud Service",
-    version=MISERVICE_VERSION,
+    name="miservice_fork",
+    description="XiaoMi Cloud Service fork from https://github.com/Yonsm/MiService",
+    version="2.1.0",
     license="MIT",
     author="Yonsm, yihong0618",
     author_email="Yonsm@qq.com, zouzou0208@gmail.com",
