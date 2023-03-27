@@ -1,27 +1,21 @@
 # MiService
 XiaoMi Cloud Service for mi.com
-This is a fork from https://github.com/Yonsm/MiService made some change for xiaogpt
-
-## Install
-```
-pip3 install .
-```
+This is a fork from https://github.com/yihong618/MiService and use chatgpt convert python to Go, then can to run some box.
 
 ## Library
 ```
-MiService：XiaoMi Cloud Service
+miservice：XiaoMi Cloud Service
   |
-  |-- MiAccount：Account Srvice
-  |-- MiBaseService：(TODO if needed)
+  |-- account.go：Account Srvice
   |     |
-  |     |-- MiIOService：MiIO Service (sid=xiaomiio)
+  |     |-- io.go：MiIO Service (sid=xiaomiio)
   |     |     |
-  |     |     |-- MIoT_xxx：MIoT Service, Based on MiIO
+  |     |     |-- iot.go：MIoT Service, Based on MiIO
   |     |
-  |     |-- MiNAService：MiAI Service (sid=micoapi)
+  |     |-- ai.go：MiAI Service (sid=micoapi)
   |     |
   |     |-- MiAPIService：(TODO)
-  |-- MiIOCommand：MiIO Command Style Interface
+  |-- command.go：MiIO Command Style Interface
 ```
 
 ## Command Line
@@ -58,10 +52,6 @@ MIoT Spec: micli spec [model_keyword|type_urn] [format=text|python|json]
 MIoT Decode: micli decode <ssecurity> <nonce> <data> [gzip]
 ```
 
-## 套路，例子：
-
-`请在 Mac OS 或 Linux 下执行，Windows 下要支持也应该容易但可能需要修改？`
-
 ### 1. 先设置账号
 
 ```
@@ -72,7 +62,7 @@ export MI_PASS=<Password>
 ### 2. 查询自己的设备
 
 ```
-micli.py list
+micli list
 ```
 可以显示自己账号下的设备列表，包含名称、类型、DID、Token 等信息。
 
@@ -88,21 +78,21 @@ export MI_DID=<Device ID|Name>
 
 查询设备的 MIoT 接口能力描述：
 ```
-micli.py spec xiaomi.wifispeaker.lx04
+micli spec xiaomi.wifispeaker.lx04
 ```
 其中分为属性获取、属性设置、动作调用三种描述。
 
 ### 5. 查询音量属性
 
 ```
-micli.py 2-1
+micli 2-1
 ```
 其中 `2` 为 `siid`，`1` 为 `piid`（如果是 `1` 则可以省略），可从 spec 接口描述中查得。
 
 ### 6. 设置音量属性
 
 ```
-micli.py 2=#60
+micli 2=#60
 ```
 `siid` 和 `piid` 规则同属性查询命令。注意 `#` 号的意思是整数类型，如果不带则默认是文本字符串类型，要根据接口描述文档来确定类型。
 
@@ -110,20 +100,17 @@ micli.py 2=#60
 
 以下命令执行后小爱音箱会播报“您好”：
 ```
-micli.py 5 您好
+micli 5 您好
 ```
 其中，5 为 `siid`，此处省略了 `1` 的 `aiid`。
 
 以下命令执行后相当于直接对对音箱说“小爱同学，查询天气”是一个效果：
 ```
-micli.py 5-4 查询天气 #1
+micli 5-4 查询天气 #1
 ```
 
 其中 `#1` 表示设备语音回应，如果要执行默默关灯（不要音箱回应），可以如下：
 ```
-micli.py 5-4 关灯 #0
+micli 5-4 关灯 #0
 ```
 
-### 8. 其它应用
-
-在扩展插件中使用，比如，参考 [ZhiMsg 小爱同学 TTS 播报/执行插件](https://github.com/Yonsm/ZhiMsg)
