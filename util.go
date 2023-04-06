@@ -11,9 +11,11 @@ import (
     "fmt"
     "io"
     "math/rand"
+    "net/url"
     "strconv"
     "strings"
     "time"
+    "unicode"
 )
 
 var r = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -44,34 +46,42 @@ func signNonce(ssecurity string, nonce string) (string, error) {
     return base64.StdEncoding.EncodeToString(hash.Sum(nil)), nil
 }
 
-func signData(uri string, data map[string]interface{}, ssecurity string) map[string]interface{} {
-    dataStr, err := json.Marshal(data)
-    if err != nil {
-        return nil
-    }
-
+var genNonce = func() string {
     nonce := make([]byte, 12)
-    _, err = rand.Read(nonce[:8])
+    _, err := rand.Read(nonce[:8])
     if err != nil {
-        return nil
+        return ""
     }
     binary.BigEndian.PutUint32(nonce[8:], uint32(time.Now().Unix()/60))
-    encodedNonce := base64.StdEncoding.EncodeToString(nonce)
+    return base64.StdEncoding.EncodeToString(nonce)
+}
 
+func signData(uri string, data any, ssecurity string) url.Values {
+    var dataStr []byte
+    if s, ok := data.(string); ok {
+        dataStr = []byte(s)
+    } else {
+        var err error
+        dataStr, err = json.Marshal(data)
+        if err != nil {
+            return nil
+        }
+    }
+
+    encodedNonce := genNonce()
     snonce, err := signNonce(ssecurity, encodedNonce)
     if err != nil {
         return nil
     }
-
     msg := fmt.Sprintf("%s&%s&%s&data=%s", uri, snonce, encodedNonce, dataStr)
-    sign := hmac.New(sha256.New, []byte(snonce))
+    sb, _ := base64.StdEncoding.DecodeString(snonce)
+    sign := hmac.New(sha256.New, sb)
     sign.Write([]byte(msg))
     signature := base64.StdEncoding.EncodeToString(sign.Sum(nil))
-
-    return map[string]interface{}{
-        "_nonce":    encodedNonce,
-        "data":      string(dataStr),
-        "signature": signature,
+    return url.Values{
+        "_nonce":    {encodedNonce},
+        "data":      {string(dataStr)},
+        "signature": {signature},
     }
 }
 
@@ -114,4 +124,13 @@ func unzip(data []byte) ([]byte, error) {
     defer reader.Close()
 
     return io.ReadAll(reader)
+}
+
+func isDigit(s string) bool {
+    for _, r := range s {
+        if !unicode.IsDigit(r) {
+            return false
+        }
+    }
+    return true
 }

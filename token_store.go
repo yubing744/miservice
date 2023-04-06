@@ -5,16 +5,40 @@ import (
     "os"
 )
 
-type MiTokenStore struct {
+type SidToken struct {
+    Ssecurity    string `json:"ssecurity"`
+    ServiceToken string `json:"service_token"`
+}
+
+type Tokens struct {
+    UserName  string              `json:"user_name"`
+    DeviceId  string              `json:"device_id"`
+    UserId    string              `json:"user_id"`
+    PassToken string              `json:"pass_token"`
+    Sids      map[string]SidToken `json:"sids"`
+}
+
+func NewTokens() *Tokens {
+    return &Tokens{
+        Sids: make(map[string]SidToken),
+    }
+}
+
+type TokenStore interface {
+    LoadToken() (*Tokens, error)
+    SaveToken(tokens *Tokens) error
+}
+
+type FileTokenStore struct {
     tokenPath string
 }
 
-func NewMiTokenStore(tokenPath string) *MiTokenStore {
-    return &MiTokenStore{tokenPath: tokenPath}
+func NewTokenStore(tokenPath string) *FileTokenStore {
+    return &FileTokenStore{tokenPath: tokenPath}
 }
 
-func (mts *MiTokenStore) loadToken() (map[string]string, error) {
-    var token map[string]string
+func (mts *FileTokenStore) LoadToken() (*Tokens, error) {
+    var tokens Tokens
     if _, err := os.Stat(mts.tokenPath); os.IsNotExist(err) {
         return nil, err
     }
@@ -22,14 +46,14 @@ func (mts *MiTokenStore) loadToken() (map[string]string, error) {
     if err != nil {
         return nil, err
     }
-    err = json.Unmarshal(data, &token)
-    return token, err
+    err = json.Unmarshal(data, &tokens)
+    return &tokens, err
 }
 
-func (mts *MiTokenStore) saveToken(token map[string]string) error {
+func (mts *FileTokenStore) SaveToken(tokens *Tokens) error {
     var err error
-    if token != nil {
-        data, err := json.MarshalIndent(token, "", "  ")
+    if tokens != nil {
+        data, err := json.MarshalIndent(tokens, "", "  ")
         if err != nil {
             return err
         }
@@ -44,4 +68,17 @@ func (mts *MiTokenStore) saveToken(token map[string]string) error {
         }
     }
     return err
+}
+
+type DummyTokenStore struct {
+    tokens *Tokens
+}
+
+func (d *DummyTokenStore) LoadToken() (*Tokens, error) {
+    return d.tokens, nil
+}
+
+func (d *DummyTokenStore) SaveToken(tokens *Tokens) error {
+    d.tokens = tokens
+    return nil
 }
