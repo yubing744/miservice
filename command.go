@@ -1,6 +1,9 @@
 package miservice
 
 import (
+    "encoding/json"
+    "errors"
+    "strconv"
     "strings"
 )
 
@@ -45,110 +48,129 @@ func IOCommandHelp(did string, prefix string) string {
 }
 
 func IOCommand(service *IOService, did string, text string, prefix string) (interface{}, error) {
-    //cmd, arg := twinsSplit(text, " ", "")
+    cmd, arg := twinsSplit(text, " ", "")
     //if strings.HasPrefix(cmd, "/") {
     //    return service.Request(cmd, arg)
     //}
     //
-    //if strings.HasPrefix(cmd, "prop") || cmd == "action" {
-    //    var args map[string]interface{}
-    //    if err := json.Unmarshal([]byte(arg), &args); err != nil {
-    //        return nil, err
-    //    }
-    //    return service.Request(cmd, args)
-    //}
-    //
-    //argv := strings.Split(arg, " ")
-    //argc := len(argv)
-    //var arg0 string
-    //if argc > 0 {
-    //    arg0 = argv[0]
-    //}
-    //var arg1 string
-    //if argc > 1 {
-    //    arg1 = argv[1]
-    //}
-    //var arg2 string
-    //if argc > 2 {
-    //    arg2 = argv[2]
-    //}
-    //switch cmd {
-    //// Implement the cases for list, spec, and decode as methods for the IOService
-    //case "list":
-    //    a1 := false
-    //    if arg1 != "" {
-    //        a1, _ = strconv.ParseBool(arg1)
-    //    }
-    //    a2 := 0
-    //    if arg2 != "" {
-    //        a2, _ = strconv.Atoi(arg2)
-    //    }
-    //    return service.DeviceList(arg0, a1, a2) // Implement this method for the IOService
-    //case "spec":
-    //    return service.IotSpec(arg0, arg1) // Implement this method for the IOService
-    //case "decode":
-    //    if argc > 3 && argv[3] == "gzip" {
-    //        return service.IotDecode(argv[0], argv[1], argv[2], true) // Implement this method for the IOService
-    //    }
-    //    return service.IotDecode(argv[0], argv[1], argv[2], false) // Implement this method for the IOService
-    //}
-    //if !strings.HasPrefix(did, "?") && !strings.HasPrefix(cmd, "？") && cmd != "help" && cmd != "-h" && cmd != "--help" {
-    //    if !isDigit(did) {
-    //        devices, err := service.DeviceList(did) // Implement this method for the IOService
-    //        if err != nil {
-    //            return nil, err
-    //        }
-    //        if len(devices) == 0 {
-    //            return nil, errors.New("Device not found: " + did)
-    //        }
-    //        did = devices[0]["did"].(string)
-    //    }
-    //
-    //    var props []interface{}
-    //    setp := true
-    //    miot := true
-    //    for _, item := range strings.Split(cmd, ",") {
-    //        key, value := twinsSplit(item, "=", "")
-    //        siid, iid := twinsSplit(key, "-", "1")
-    //        var prop any
-    //        if strings.HasPrefix(siid, "#") && strings.HasPrefix(iid, "#") {
-    //            prop = []int{int(siid[1]), int(iid[1])}
-    //        } else {
-    //            prop = []string{key}
-    //            miot = false
-    //        }
-    //        if value == "" {
-    //            setp = false
-    //        } else if setp {
-    //            prop = append(prop, stringOrValue(value))
-    //        }
-    //        props = append(props, prop)
-    //    }
-    //    if miot && argc > 0 {
-    //        args := []interface{}{}
-    //        if arg != "#NA" {
-    //            for _, a := range argv {
-    //                args = append(args, stringOrValue(a))
-    //            }
-    //        }
-    //        return service.MiotAction(did, props[0], args) // Implement this method for the IOService
-    //    }
-    //
-    //    var doProps func(string, []interface{}) (interface{}, error)
-    //    if setp {
-    //        if miot {
-    //            doProps = service.MiotSetProps // Implement this method for the IOService
-    //        } else {
-    //            doProps = service.HomeSetProps // Implement this method for the IOService
-    //        }
+    if strings.HasPrefix(cmd, "prop") || cmd == "action" {
+        var args map[string]interface{}
+        if err := json.Unmarshal([]byte(arg), &args); err != nil {
+            return nil, err
+        }
+        return service.Request(cmd, args)
+    }
+
+    argv := strings.Split(arg, " ")
+    argc := len(argv)
+    var arg0 string
+    if argc > 0 {
+        arg0 = argv[0]
+    }
+    var arg1 string
+    if argc > 1 {
+        arg1 = argv[1]
+    }
+    var arg2 string
+    if argc > 2 {
+        arg2 = argv[2]
+    }
+    switch cmd {
+    case "list":
+        a1 := false
+        if arg1 != "" {
+            a1, _ = strconv.ParseBool(arg1)
+        }
+        a2 := 0
+        if arg2 != "" {
+            a2, _ = strconv.Atoi(arg2)
+        }
+        return service.DeviceList(a1, a2) // Implement this method for the IOService
+    case "spec":
+        return service.IotSpec(arg0) // Implement this method for the IOService
+    case "decode":
+        if argc > 3 && argv[3] == "gzip" {
+            return service.IotDecode(argv[0], argv[1], argv[2], true) // Implement this method for the IOService
+        }
+        return service.IotDecode(argv[0], argv[1], argv[2], false) // Implement this method for the IOService
+    }
+
+    if did == "" || cmd == "" || cmd == "help" || cmd == "-h" || cmd == "--help" {
+        return IOCommandHelp(did, prefix), nil
+    }
+
+    if !isDigit(did) {
+        devices, err := service.DeviceList(false, 0) // Implement this method for the IOService
+        if err != nil {
+            return nil, err
+        }
+        if len(devices) == 0 {
+            return nil, errors.New("Device not found: " + did)
+        }
+        for _, device := range devices {
+            if device.Name == did {
+                did = device.Did
+                break
+            }
+        }
+    }
+
+    var props [][]interface{}
+    setp := true
+    miot := true
+    for _, item := range strings.Split(cmd, ",") {
+        key, value := twinsSplit(item, "=", "")
+        siid, iid := twinsSplit(key, "-", "1")
+        var prop []interface{}
+        if isDigit(siid) && isDigit(iid) {
+            s, _ := strconv.Atoi(siid)
+            i, _ := strconv.Atoi(iid)
+            prop = []interface{}{s, i}
+        } else {
+            prop = []interface{}{key}
+            miot = false
+        }
+        if value == "" {
+            setp = false
+        } else if setp {
+            prop = append(prop, stringOrValue(value))
+        }
+        props = append(props, prop)
+    }
+
+    if miot && argc > 0 {
+        var args []interface{}
+        if arg != "#NA" {
+            for _, a := range argv {
+                args = append(args, stringOrValue(a))
+            }
+        }
+        var ids []int
+
+        for _, id := range props[0] {
+            if v, ok := id.(int); ok {
+                ids = append(ids, v)
+            } else if v, ok := id.(string); ok {
+                if v2, err := strconv.Atoi(v); err == nil {
+                    ids = append(ids, v2)
+                }
+            }
+        }
+        return service.MiotAction(did, ids, args)
+    }
+
+    //if setp {
+    //    if miot {
+    //        return service.MiotSetProps(did, props)
     //    } else {
-    //        if miot {
-    //            doProps = service.MiotGetProps // Implement this method for the IOService
-    //        } else {
-    //            doProps = service.HomeGetProps // Implement this method for the IOService
-    //        }
+    //        return service.HomeSetProps(did, props)
     //    }
-    //    return doProps(did, props)
+    //} else {
+    //    if miot {
+    //        return service.MiotGetProps(did, props)
+    //    } else {
+    //        return service.HomeGetProps(did, props)
+    //    }
     //}
-    return IOCommandHelp(did, prefix), nil
+    return nil, errors.New("Unknown command: " + cmd)
 }

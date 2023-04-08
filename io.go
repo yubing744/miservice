@@ -54,21 +54,20 @@ type DeviceInfo struct {
     Token string `json:"token"`
 }
 
-func (s *IOService) DeviceList(getVirtualModel bool, getHuamiDevices int) (devices []DeviceInfo, raw []map[string]interface{}, err error) {
+func (s *IOService) DeviceList(getVirtualModel bool, getHuamiDevices int) (devices []DeviceInfo, err error) {
     data := map[string]interface{}{
         "getVirtualModel": getVirtualModel,
         "getHuamiDevices": getHuamiDevices,
     }
     result, err := s.Request("/home/device_list", data)
     if err != nil {
-        return nil, nil, err
+        return nil, err
     }
     deviceList := result["list"].([]interface{})
 
     devices = make([]DeviceInfo, len(deviceList))
     for i, item := range deviceList {
         device := item.(map[string]interface{})
-        raw = append(raw, device)
         devices[i] = DeviceInfo{
             Name:  device["name"].(string),
             Model: device["model"].(string),

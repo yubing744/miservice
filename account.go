@@ -227,7 +227,7 @@ func (ma *Account) securityTokenService(location, ssecurity string, nonce int64)
 
 type DataCb func(tokens *Tokens, cookie map[string]string) url.Values
 
-func (ma *Account) newRequest(sid, u string, data url.Values, cb DataCb, headers http.Header) *http.Request {
+func (ma *Account) NewRequest(sid, u string, data url.Values, cb DataCb, headers http.Header) *http.Request {
     var req *http.Request
     var body io.Reader
     cookies := []*http.Cookie{
@@ -247,17 +247,18 @@ func (ma *Account) newRequest(sid, u string, data url.Values, cb DataCb, headers
             }
         } else if data != nil {
             vals = data
-        } else {
-            vals = url.Values{}
         }
-        method = http.MethodPost
-        log.Println("request data", vals.Encode())
-        body = strings.NewReader(vals.Encode())
-        headers.Set("Content-Type", "application/x-www-form-urlencoded")
+        if vals != nil {
+            method = http.MethodPost
+            log.Println("request data", vals.Encode())
+            body = strings.NewReader(vals.Encode())
+            headers.Set("Content-Type", "application/x-www-form-urlencoded")
+        }
     }
     req, _ = http.NewRequest(method, u, body)
-
-    req.Header = headers
+    if headers != nil {
+        req.Header = headers
+    }
     for _, cookie := range cookies {
         req.AddCookie(cookie)
     }
@@ -267,15 +268,23 @@ func (ma *Account) newRequest(sid, u string, data url.Values, cb DataCb, headers
     return req
 }
 
+func (ma *Account) hasSid(sid string) bool {
+    if ma.token == nil {
+        return false
+    }
+    _, ok := ma.token.Sids[sid]
+    return ok
+}
+
 func (ma *Account) Request(sid, u string, data url.Values, cb DataCb, headers http.Header, reLogin bool, output any) error {
-    if ma.token == nil || len(ma.token.Sids) == 0 {
+    if !ma.hasSid(sid) {
         err := ma.Login(sid)
         if err != nil {
             return err
         }
     }
     log.Println("request token done")
-    req := ma.newRequest(sid, u, data, cb, headers)
+    req := ma.NewRequest(sid, u, data, cb, headers)
     resp, err := ma.client.Do(req)
     if err != nil {
         return err
